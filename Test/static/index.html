@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Summarizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 60px 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8eaff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .transcript-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .summary-section {
+            margin-bottom: 25px;
+        }
+
+        .summary-section h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+        }
+
+        .summary-section p {
+            line-height: 1.7;
+            color: #555;
+        }
+
+        .list-item {
+            background: #f8f9ff;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            line-height: 1.5;
+        }
+
+        .action-item {
+            border-left-color: #ff6b6b;
+        }
+
+        .decision-item {
+            border-left-color: #51cf66;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            border-left: 4px solid #c33;
+        }
+
+        .success {
+            color: #51cf66;
+            font-weight: 600;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f2ff;
+            border-radius: 6px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .upload-area {
+                padding: 40px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Meeting Summarizer</h1>
+            <p>Upload your meeting audio and get instant transcripts with AI-powered summaries</p>
+        </div>
+
+        <div class="card">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-hint">Supported formats: MP3, WAV, M4A, OGG, MP4, WEBM (Max 100MB)</div>
+                </div>
+                <input type="file" id="fileInput" accept="audio/*,video/*">
+                <div id="fileName" class="file-name" style="display: none;"></div>
+                <button class="btn" id="processBtn" style="display: none;">Process Audio</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your audio... This may take a few minutes.</p>
+                <p style="margin-top: 10px; color: #666;">Transcribing audio and generating summary...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="results" id="results">
+                <div class="section-title">📝 Transcript</div>
+                <div class="transcript-box" id="transcript"></div>
+
+                <div class="section-title">📊 Summary</div>
+                
+                <div class="summary-section" id="summarySection">
+                    <h3>📝 Summary</h3>
+                    <p id="summaryText" style="line-height: 1.8; color: #333;"></p>
+                </div>
+
+                <div class="summary-section" id="detailsSection">
+                    <h3>📋 Details</h3>
+                    <div id="detailsContent" style="line-height: 1.8; white-space: pre-wrap; color: #333;"></div>
+                </div>
+
+                <div class="summary-section" id="nextStepsSection">
+                    <h3>🎯 Suggested Next Steps</h3>
+                    <div id="nextStepsList"></div>
+                </div>
+
+                <button class="btn" onclick="location.reload()">Process Another Audio</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const processBtn = document.getElementById('processBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+
+        let selectedFile = null;
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileName.style.display = 'block';
+            fileName.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            processBtn.style.display = 'inline-block';
+        }
+
+        processBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Hide upload section and show loading
+            uploadSection.style.display = 'none';
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('audio', selectedFile);
+
+            try {
+                // Use Flask server URL (port 5000)
+                const API_URL = 'http://localhost:5000';
+                const response = await fetch(`${API_URL}/api/process`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'An error occurred during processing');
+                }
+            } catch (err) {
+                showError('Failed to connect to server: ' + err.message);
+            }
+        });
+
+        function displayResults(data) {
+            loading.style.display = 'none';
+            results.style.display = 'block';
+
+            // Display transcript
+            document.getElementById('transcript').textContent = data.transcript;
+
+            // Display summary paragraph
+            document.getElementById('summaryText').textContent = 
+                data.summary.summary || 'No summary available';
+
+            // Display details section with formatted content
+            const detailsContent = document.getElementById('detailsContent');
+            if (data.summary.details) {
+                detailsContent.innerHTML = formatDetails(data.summary.details);
+            } else {
+                detailsContent.innerHTML = '<p style="color: #999;">No details available</p>';
+            }
+
+            // Display next steps
+            const nextStepsList = document.getElementById('nextStepsList');
+            nextStepsList.innerHTML = '';
+            if (data.summary.next_steps && data.summary.next_steps.length > 0) {
+                data.summary.next_steps.forEach(step => {
+                    const div = document.createElement('div');
+                    div.className = 'list-item action-item';
+                    div.innerHTML = `<span style="color: #2563eb;">→</span> ${step}`;
+                    nextStepsList.appendChild(div);
+                });
+            } else {
+                nextStepsList.innerHTML = '<p style="color: #999;">No suggested next steps were found for this meeting.</p>';
+            }
+        }
+
+        function formatDetails(details) {
+            // Format the details section with better styling
+            // Replace ** markers with bold tags
+            let formatted = details.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #1e40af; font-size: 1.1em; display: block; margin-top: 1.5em; margin-bottom: 0.5em;">$1</strong>');
+            
+            // Add spacing between paragraphs
+            formatted = formatted.replace(/\n\n/g, '</p><p style="margin-bottom: 1em;">');
+            
+            // Wrap in paragraph if not already
+            if (!formatted.startsWith('<p>')) {
+                formatted = '<p style="margin-bottom: 1em;">' + formatted + '</p>';
+            }
+            
+            return formatted;
+        }
+
+        function showError(message) {
+            loading.style.display = 'none';
+            uploadSection.style.display = 'block';
+            error.style.display = 'block';
+            error.textContent = '❌ Error: ' + message;
+        }
+    </script>
+</body>
+</html>
+
